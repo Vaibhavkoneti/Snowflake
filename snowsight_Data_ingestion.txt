@@ -1,0 +1,176 @@
+MY_DB use role SYSADMIN;
+--create database
+create database my_db comment = 'this is my demo db';
+show databases like 'MY%';
+--selecting role and db
+select
+    current_role(),
+    current_database();
+--create a schema
+    create schema my_schema comment = 'this is my demo schema under my_db';
+show schemas;
+select
+    current_role(),
+    current_database(),
+    current_schema();
+drop table if exists my_table;
+create table my_table(
+        id int autoincrement,
+        num number,
+        num10_1 number(10, 1),
+        decimal_20_2 decimal(20, 2),
+        numeric numeric(30, 3),
+        int int,
+        integer integer
+    );
+desc table my_table;
+select
+    get_ddl('table', 'my_table');
+--insert single row
+insert into
+    my_table(num, num10_1, decimal_20_2, numeric, int, integer)
+values(10, 22.2, 33.33, 123456789, 987654321, 12112);
+--insert multiple row
+insert into
+    my_table(num, num10_1, decimal_20_2, numeric, int, integer)
+values(10, 22.2, 33.33, 123456789, 987654321, 12112),(30, 12.2, 13.33, 133454789, 985654421, 22112);
+select
+    *
+from
+    my_table;
+--creating Boolean table
+    create
+    or replace table my_boolean_table(
+        b boolean,
+        n number,
+        s string
+    );
+desc table my_boolean_table;
+insert into
+    my_boolean_table
+values(true, 1, '
+     yes'),(false, 2, 'no'),(null, null, null);
+select
+    *
+from
+    my_boolean_table;
+--timestamp
+    drop table if exists my_ts;
+create
+    or replace table my_ts(
+        today_date date default current_date(),
+        now_time time default current_time(),
+        now_ts timestamp default current_timestamp()
+    );
+desc table my_ts;
+insert into
+    my_ts (today_date, now_time, now_ts)
+values(current_date, current_time, current_timestamp);
+insert into
+    my_ts (now_time, now_ts)
+values(current_time, current_timestamp);
+select
+    *
+from
+    my_ts;
+--change the session level timezone
+    alter session
+set
+    timezone = 'America/Los_Angeles';
+alter session
+set
+    timezone = 'japan';
+alter session
+set
+    timestamp_output_format = 'YYYY-MM-DD HH24:MI:SS.FF';
+--upper,lower & mixed case table
+    drop table my_case_table;
+create table my_case_table (my_field string);
+desc table my_case_table;
+show tables like 'MY_C%';
+create table MY_CASE_TABLE(my_field string);
+create table my_case_TABLE(my_field string);
+--object identifier
+    create table "my_table" (my_field string);
+create table "My table" ("my field" string);
+create table "MY TABLE" ("my field" string, "My Field" string);
+desc table "my table";
+desc table "MY TABLE";
+--table as select
+    create table mi_table as
+select
+    *
+from
+    my_db.my_schema.my_table;
+select
+    *
+from
+    mi_table;
+insert into
+    mi_table(num, num10_1, decimal_20_2, numeric, int, integer)
+select
+    num,
+    num10_1,
+    decimal_20_2,
+    numeric,
+    int,
+    integer
+from
+    my_db.my_schema.my_table;
+-- we can load data though web interface
+    --load from csv file
+    drop table if exists my_constaints_table;
+create table my_constaints_table(
+        emp_pk string primary key,
+        fname string not null,
+        lname string not null,
+        flag string default 'active',
+        unique_code string unique
+    );
+insert into
+    my_constaints_table (emp_pk, fname, lname, unique_code)
+values
+    ('100', 'john1', 'K', '1000'),
+    ('100', 'john2', 'K', '1000');
+select
+    *
+from
+    my_constaints_table;
+--except null snowflake doesn't execute constraints(like pk,fk..)
+    --variant data
+    create table json_weather (v variant) desc table json_weather;
+create stage nyc_weather url = 's3: //toppertips-workshop-lab/';
+--list weather
+    list @nyc_weather;
+--copy from external stage
+    copy into json_weather
+from
+    @nyc_weather file_format = (type = json);
+--select data
+select
+    *
+from
+    json_weather
+limit
+    10;
+--create a view
+    create view json_weather_data_view as
+select
+    v:time::timestamp as obseravtion_time v:wind.speed::float as wind_speed
+from
+    json_weather_data
+where
+    city_id = 5128638;
+select
+    *
+from
+    json_weather_data_view;
+--create external table
+    crete
+    or replace external table json_weather_data_et(time varchar as (value:c!::varchar),.....) with location = @nyc_weather auto_refresh = false file_format =(format_name = file_format);
+--temp & transitent table
+    --create a transitent table
+    create transiten table json_weather_data (v variant);
+--ceate a tempory table
+    create temporary table json_weather_data (v variant);
+)
